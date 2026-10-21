@@ -1,0 +1,16 @@
+# kernel module build outputs
+*.o
+*.ko
+*.mod
+*.mod.c
+.*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+.module-common.o
+*.dtbo
+# firmware build
+firmware/build/
+firmware/pico_sdk_import.cmake
+# test binary
+test/fs_read

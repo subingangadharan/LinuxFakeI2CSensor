@@ -1,0 +1,45 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Raspberry Pi overlay: Pico 2 fake sensor on the header I2C bus (i2c-1)
+ * at 0x42, DRDY on GPIO17 (header pin 11), level-high interrupt.
+ *
+ * Build:   dtc -@ -I dts -O dtb -o fakesensor.dtbo fakesensor-overlay.dts
+ * Load:    sudo dtoverlay -d . fakesensor          (runtime)
+ *     or   copy to /boot/firmware/overlays/ and add "dtoverlay=fakesensor"
+ *          to /boot/firmware/config.txt            (boot time)
+ */
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "brcm,bcm2835";
+
+	fragment@0 {
+		target = <&gpio>;
+		__overlay__ {
+			fakesensor_pins: fakesensor_pins {
+				brcm,pins = <17>;
+				brcm,function = <0>;	/* input */
+				brcm,pull = <1>;	/* pull-down: idle low */
+			};
+		};
+	};
+
+	fragment@1 {
+		target = <&i2c_arm>;
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "okay";
+
+			fakesensor@42 {
+				compatible = "subin,fakesensor";
+				reg = <0x42>;
+				pinctrl-names = "default";
+				pinctrl-0 = <&fakesensor_pins>;
+				interrupt-parent = <&gpio>;
+				interrupts = <17 4>;	/* 4 = IRQ_TYPE_LEVEL_HIGH */
+			};
+		};
+	};
+};

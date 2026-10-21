@@ -1,0 +1,54 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Orange Pi 5 (RK3588S) overlay: Pico 2 fake sensor on I2C5 (mux M3) at 0x42,
+ * DRDY on GPIO1_C6, level-high interrupt.
+ *
+ * 26-pin header:
+ *   pin 3  = GPIO1_B7 = I2C5_SDA_M3   <- Pico GP4
+ *   pin 5  = GPIO1_B6 = I2C5_SCL_M3   <- Pico GP5
+ *   pin 7  = GPIO1_C6 (Linux gpio 54) <- Pico GP6 (DRDY)
+ *   pin 6  = GND                      <- Pico GND
+ *
+ * Build:  dtc -@ -I dts -O dtb -o fakesensor-opi5.dtbo fakesensor-opi5-overlay.dts
+ * Orange Pi OS: sudo orangepi-add-overlay fakesensor-opi5-overlay.dts, then reboot
+ * Armbian:      sudo armbian-add-overlay  fakesensor-opi5-overlay.dts, then reboot
+ */
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "rockchip,rk3588s-orangepi-5", "rockchip,rk3588s";
+
+	fragment@0 {
+		target = <&pinctrl>;
+		__overlay__ {
+			fakesensor {
+				fs_drdy: fs-drdy {
+					/* bank 1, RK_PC6 = 22, function 0 = GPIO, pull-down: idle low */
+					rockchip,pins = <1 22 0 &pcfg_pull_down>;
+				};
+			};
+		};
+	};
+
+	fragment@1 {
+		target = <&i2c5>;
+		__overlay__ {
+			status = "okay";
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2c5m3_xfer>;	/* route I2C5 to header pins 3/5 */
+			clock-frequency = <100000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			fakesensor@42 {
+				compatible = "subin,fakesensor";
+				reg = <0x42>;
+				pinctrl-names = "default";
+				pinctrl-0 = <&fs_drdy>;
+				interrupt-parent = <&gpio1>;
+				interrupts = <22 4>;	/* RK_PC6, 4 = IRQ_TYPE_LEVEL_HIGH */
+			};
+		};
+	};
+};
